@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from ai_engine import analyze_multiple_blood_tests, extract_and_parse_with_gemini, MEDICAL_DICTIONARY
+from datetime import datetime
+
 
 
 app = Flask(__name__)
@@ -30,6 +32,7 @@ class BloodRecord(db.Model):
     previous_value = db.Column(db.Float, nullable=True)
     ai_analysis = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    record_date = db.Column(db.Date, nullable=True, default=datetime.utcnow)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -108,6 +111,14 @@ def analyze():
 
     if request.method == 'POST':
         # --- ตรวจสอบว่าเป็นการส่งไฟล์ (OCR) หรือ กรอกฟอร์มปกติ ---
+        record_date_str = request.form.get('record_date')
+        if record_date_str:
+            try:
+                record_date_val = datetime.strptime(record_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                record_date_val = datetime.utcnow().date()
+        else:
+            record_date_val = datetime.utcnow().date()
         
         # 1. กรณีผู้ใช้อัปโหลดไฟล์
         uploaded_files = request.files.getlist('lab_files')
@@ -124,15 +135,37 @@ def analyze():
                 analysis_result = analyze_multiple_blood_tests(clean_results_json)
                 extracted_data_from_files = clean_results_json
                 
-                # บันทึกลงฐานข้อมูล (ประวัติแบบเหมาเข่ง -- ท่าPoC)
-                new_record = BloodRecord(
-                    test_name="สแกนจากไฟล์ (AI Scan)",
-                    current_value=0.0, 
-                    previous_value=None,
-                    ai_analysis=analysis_result,
-                    user_id=current_user.id
-                )
-                db.session.add(new_record)
+                # บันทึกลงฐานข้อมูล (แยกรายค่าแบบฟอร์มปกติ)
+                for test_name, vals in clean_results_json.items():
+                    current_val = vals.get('current')
+                    previous_val = vals.get('previous')
+                    
+                    if current_val is not None:
+                        try:
+                            existing_record = BloodRecord.query.filter_by(
+                                user_id=current_user.id,
+                                test_name=test_name,
+                                record_date=record_date_val
+                            ).first()
+                            
+                            if existing_record:
+                                existing_record.current_value = float(current_val)
+                                if previous_val:
+                                    existing_record.previous_value = float(previous_val)
+                                existing_record.ai_analysis = analysis_result
+                            else:
+                                new_record = BloodRecord(
+                                    test_name=test_name,
+                                    current_value=float(current_val),
+                                    previous_value=float(previous_val) if previous_val else None,
+                                    ai_analysis=analysis_result,
+                                    user_id=current_user.id,
+                                    record_date=record_date_val
+                                )
+                                db.session.add(new_record)
+                        except ValueError:
+                            pass # ป้องกันกรณีแปลง string เป็น float ไม่ได้
+
                 db.session.commit()
                 
                 # แสดงหน้าสรุปผลการสแกน
@@ -157,14 +190,26 @@ def analyze():
             analysis_result = analyze_multiple_blood_tests(results_dict)
             submitted_data = summary_list
             for test_name, vals in results_dict.items():
-                new_record = BloodRecord(
+                existing_record = BloodRecord.query.filter_by(
+                    user_id=current_user.id,
                     test_name=test_name,
-                    current_value=float(vals['current']),
-                    previous_value=float(vals['previous']) if vals['previous'] else None,
-                    ai_analysis=analysis_result,
-                    user_id=current_user.id
-                )
-                db.session.add(new_record)
+                    record_date=record_date_val
+                ).first()
+                if existing_record:
+                    existing_record.current_value = float(vals['current'])
+                    if vals['previous']:
+                        existing_record.previous_value = float(vals['previous'])
+                    existing_record.ai_analysis = analysis_result
+                else:
+                    new_record = BloodRecord(
+                        test_name=test_name,
+                        current_value=float(vals['current']),
+                        previous_value=float(vals['previous']) if vals['previous'] else None,
+                        ai_analysis=analysis_result,
+                        user_id=current_user.id,
+                        record_date=record_date_val
+                    )
+                    db.session.add(new_record)
             db.session.commit()
         else:
             flash('กรุณากรอกผลเลือด หรือ อัปโหลดไฟล์อย่างน้อย 1 รายการครับ', 'error')

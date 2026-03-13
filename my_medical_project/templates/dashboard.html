@@ -30,7 +30,11 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for record in history %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-4 font-bold text-gray-700">{{ record.test_name }}</td>
+                        <td class="px-4 py-4 font-bold text-gray-700">
+                            {{ record.test_name }}
+                            <div class="text-xs text-gray-400 mt-1 font-normal">{{
+                                record.record_date.strftime('%d-%m-%Y') if record.record_date else '-' }}</div>
+                        </td>
                         <td class="px-4 py-4 text-gray-500">{{ record.previous_value or '-' }}</td>
                         <td class="px-4 py-4 font-bold text-blue-600">{{ record.current_value }}</td>
                         <td class="px-4 py-4 text-sm text-gray-600">
