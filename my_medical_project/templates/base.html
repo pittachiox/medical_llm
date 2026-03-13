@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Medical AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-50 min-h-screen">
+    <nav class="bg-blue-600 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="/" class="text-xl font-bold flex items-center gap-2">
+                🏥 Smart Medical AI
+            </a>
+            <div>
+                {% if current_user.is_authenticated %}
+                <span class="mr-4">สวัสดี, {{ current_user.username }}</span>
+                <a href="{{ url_for('logout') }}"
+                    class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm transition">ออกจากระบบ</a>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="hover:text-blue-200 mr-4">เข้าสู่ระบบ</a>
+                <a href="{{ url_for('register') }}"
+                    class="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold transition hover:bg-gray-100">สมัครสมาชิก</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-md mx-auto mt-4 px-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div
+            class="p-4 mb-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>

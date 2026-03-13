@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+
+    <div class="flex items-center justify-between mb-6 pb-4 border-b">
+        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-2">
+            🔬 สรุปการสแกนผลเลือด (AI Scan)
+        </h1>
+        <div class="flex gap-4">
+            <a href="/analyze"
+                class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-6 py-2 rounded-lg font-semibold transition">
+                + สแกนไฟล์ใหม่
+            </a>
+            <a href="/dashboard"
+                class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+                กลับหน้าหลัก
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-green-500 mb-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            📊 ค่าเลือดที่สกัดได้จากไฟล์ (กรุณาตรวจสอบความถูกต้อง)
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-left bg-gray-50 rounded-lg overflow-hidden">
+                <thead class="bg-gray-200 text-gray-700">
+                    <tr>
+                        <th class="px-4 py-2">รายการตรวจ</th>
+                        <th class="px-4 py-2 font-bold text-blue-600 text-center">ผลที่ตรวจได้</th>
+                        <th class="px-4 py-2 text-center text-gray-500">เกณฑ์ปกติ</th>
+                        <th class="px-4 py-2 text-center text-gray-500">หน่วย</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for test_id, vals in clean_results_json.items() %}
+                    <tr>
+                        <td class="px-4 py-3 font-semibold text-gray-700">{{ test_id }}</td>
+                        <td class="px-4 py-3 font-bold text-blue-600 text-center text-xl">{{ vals.current }}</td>
+                        <td class="px-4 py-3 text-center text-gray-500">{{ MEDICAL_DICTIONARY.get(test_id,
+                            {}).get('normal', '-') }}</td>
+                        <td class="px-4 py-3 text-center text-gray-500">{{ MEDICAL_DICTIONARY.get(test_id,
+                            {}).get('unit', '-') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-sm text-gray-500 mt-4">** หมายเหตุ: ระบบ AI สแกนอาจอ่านค่าเพี้ยนได้ในบางกรณี
+            หากข้อมูลไม่ถูกต้องคุณสามารถกด "+ สแกนไฟล์ใหม่" หรือ "กลับหน้าหลัก" เพื่อเริ่มวิเคราะห์ใหม่</p>
+    </div>
+
+    {% if analysis_result %}
+    <div class="bg-blue-50 p-8 rounded-xl border border-blue-200 shadow-md mb-8 border-l-4">
+        <h3 class="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
+            👨‍⚕️ สรุปภาพรวมสุขภาพจาก AI:
+        </h3>
+        <div
+            class="text-gray-800 whitespace-pre-line leading-relaxed text-lg bg-white p-6 rounded-lg border border-blue-100">
+            {{ analysis_result }}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

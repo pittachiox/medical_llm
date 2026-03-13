@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-2">
+            🔬 วิเคราะห์ผลเลือด
+        </h1>
+        <a href="/dashboard"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+            กลับหน้าแรก
+        </a>
+    </div>
+
+    {% if analysis_result %}
+
+    <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 mb-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">📊 สรุปข้อมูลผลเลือดที่คุณระบุ</h3>
+        <div class="overflow-x-auto mb-6">
+            <table class="min-w-full text-left bg-gray-50 rounded-lg overflow-hidden">
+                <thead class="bg-gray-200 text-gray-700">
+                    <tr>
+                        <th class="px-4 py-2">รายการตรวจ</th>
+                        <th class="px-4 py-2">ปีที่แล้ว</th>
+                        <th class="px-4 py-2 font-bold text-blue-600">ปีนี้</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for data in submitted_data %}
+                    <tr>
+                        <td class="px-4 py-2 font-semibold text-gray-700">{{ data.name }}</td>
+                        <td class="px-4 py-2 text-gray-500">{{ data.previous }}</td>
+                        <td class="px-4 py-2 font-bold text-blue-600">{{ data.current }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex gap-4">
+            <a href="/analyze"
+                class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-6 py-2 rounded-lg font-semibold transition">
+                + วิเคราะห์ผลเลือดชุดใหม่
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-blue-50 p-8 rounded-xl border border-blue-200 shadow-md mb-8">
+        <h3 class="text-xl font-bold text-blue-800 mb-4">👨‍⚕️ สรุปภาพรวมสุขภาพจาก AI:</h3>
+        <div class="text-gray-800 whitespace-pre-line leading-relaxed text-lg">
+            {{ analysis_result }}
+        </div>
+    </div>
+
+    {% else %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1">
+            <form method="POST" action="/analyze" enctype="multipart/form-data"
+                class="bg-white p-6 rounded-xl shadow-sm border-2 border-dashed border-blue-300 h-full flex flex-col items-center justify-center text-center hover:bg-blue-50 transition">
+
+                <div class="bg-blue-100 p-4 rounded-full mb-4">
+                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-800 mb-2">อัปโหลดผลตรวจ (AI Scan)</h3>
+                <p class="text-sm text-gray-500 mb-6">รองรับไฟล์รูปภาพ (JPG, PNG) และ
+                    PDF<br>สามารถเลือกทีละหลายไฟล์พร้อมกันได้</p>
+
+                <input type="file" name="lab_files" id="file-upload" multiple accept="image/*,.pdf" class="hidden"
+                    onchange="updateFileName(this)">
+
+                <label for="file-upload"
+                    class="cursor-pointer bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 py-2 rounded-lg font-semibold transition mb-4 w-full">
+                    เลือกไฟล์...
+                </label>
+
+                <p id="file-name-display" class="text-sm text-blue-600 font-semibold mb-4"></p>
+
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:bg-blue-700 transition">
+                    🚀 สแกนและวิเคราะห์เลย
+                </button>
+
+            </form>
+
+            <script>
+                function updateFileName(input) {
+                    const display = document.getElementById('file-name-display');
+                    if (input.files.length > 0) {
+                        display.textContent = `เลือกแล้ว ${input.files.length} ไฟล์`;
+                    } else {
+                        display.textContent = '';
+                    }
+                }
+            </script>
+        </div>
+
+        <div class="lg:col-span-2 bg-white p-8 rounded-xl shadow-lg border-t-4 border-blue-600">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 border-b pb-4">📝 กรอกผลเลือดด้วยตัวเอง</h2>
+            <form method="POST" action="/analyze" class="space-y-4">
+                <div class="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-500 bg-gray-50 p-2 rounded-t-lg">
+                    <div class="col-span-6 md:col-span-4 pl-2">รายการตรวจ (Lab Test)</div>
+                    <div class="col-span-3 md:col-span-4 text-center">ผลปีที่แล้ว (ไม่บังคับ)</div>
+                    <div class="col-span-3 md:col-span-4 text-center text-blue-600">ผลปีนี้ *</div>
+                </div>
+                {% for test in lab_tests %}
+                <div
+                    class="grid grid-cols-12 gap-4 items-center hover:bg-gray-50 p-2 rounded-lg transition border-b border-gray-100 last:border-0">
+                    <div class="col-span-12 md:col-span-4">
+                        <label class="font-semibold text-gray-700">{{ test.name }}</label>
+                    </div>
+                    <div class="col-span-6 md:col-span-4">
+                        <input type="number" step="0.1" name="{{ test.id }}_previous"
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-center">
+                    </div>
+                    <div class="col-span-6 md:col-span-4">
+                        <input type="number" step="0.1" name="{{ test.id }}_current"
+                            class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-center bg-blue-50/30">
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="pt-6 mt-4 border-t">
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-md transition duration-200 text-lg flex justify-center items-center gap-2">
+                        ✨ ประมวลผลภาพรวมสุขภาพ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
