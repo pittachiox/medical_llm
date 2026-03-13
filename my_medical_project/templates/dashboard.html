@@ -5,7 +5,7 @@
     <div
         class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 border-l-4 border-green-500">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">หน้าหลัก, คุณ {{ name }} 🎉</h1>
+            <h1 class="text-3xl font-bold text-gray-800">สวัสดี, คุณ {{ name }} </h1>
             <p class="text-gray-500 mt-1">ดูประวัติย้อนหลัง หรือเพิ่มผลการตรวจใหม่</p>
         </div>
         <a href="/analyze"
@@ -16,15 +16,15 @@
 
     {% if history %}
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">📚 ประวัติผลตรวจทั้งหมดของคุณ</h3>
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">ประวัติผลตรวจทั้งหมดของคุณ</h3>
         <div class="overflow-x-auto">
             <table class="min-w-full text-left">
                 <thead class="bg-gray-100">
                     <tr>
                         <th class="px-4 py-3 rounded-tl-lg font-semibold">ค่าที่ตรวจ</th>
-                        <th class="px-4 py-3 font-semibold">ปีที่แล้ว</th>
-                        <th class="px-4 py-3 font-semibold text-blue-600">ปีนี้</th>
-                        <th class="px-4 py-3 rounded-tr-lg font-semibold">สรุปคำแนะนำจาก AI</th>
+                        <th class="px-4 py-3 font-semibold">ค่าครั้งก่อน</th>
+                        <th class="px-4 py-3 font-semibold text-blue-600">ค่าปัจจุบัน</th>
+                        <th class="px-4 py-3 rounded-tr-lg font-semibold">คำแนะนำจาก AI</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -40,7 +40,7 @@
                         <td class="px-4 py-4 text-sm text-gray-600">
                             <a href="{{ url_for('view_record', record_id=record.id) }}"
                                 class="inline-flex items-center gap-1 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 px-3 py-1.5 rounded-lg font-semibold transition border border-blue-200">
-                                📖 อ่านคำแนะนำเต็มๆ
+                                📖
                             </a>
                         </td>
                     </tr>

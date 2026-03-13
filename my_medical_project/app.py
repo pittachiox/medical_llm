@@ -86,8 +86,14 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # หน้า Dashboard โชว์แค่ประวัติ (โค้ดเดิม)
-    history = BloodRecord.query.filter_by(user_id=current_user.id).order_by(BloodRecord.id.desc()).all()
+    all_records = BloodRecord.query.filter_by(user_id=current_user.id).order_by(BloodRecord.record_date.desc(), BloodRecord.id.desc()).all()
+    history = []
+    seen_tests = set()
+    for record in all_records:
+        name_lower = record.test_name.lower().strip()
+        if name_lower not in seen_tests:
+            seen_tests.add(name_lower)
+            history.append(record)
     return render_template('dashboard.html', name=current_user.username, history=history)
 
 @app.route('/analyze', methods=['GET', 'POST'])
@@ -131,10 +137,18 @@ def analyze():
             clean_results_json = extract_and_parse_with_gemini(uploaded_files, GEMINI_API_KEY)
             
             if clean_results_json:
+                for test_name, vals in clean_results_json.items():
+                    past_record = BloodRecord.query.filter(
+                        BloodRecord.user_id == current_user.id,
+                        BloodRecord.test_name == test_name,
+                        BloodRecord.record_date < record_date_val
+                    ).order_by(BloodRecord.record_date.desc()).first()
+                    vals['previous'] = past_record.current_value if past_record else None
+
                 # Fix 2: ส่ง JSON Clean ไปให้คุณหมอ AI วิเคราะห์ภาพรวม (ท่าเดิมที่คุณเริ่ก)
                 analysis_result = analyze_multiple_blood_tests(clean_results_json)
                 extracted_data_from_files = clean_results_json
-                
+
                 # บันทึกลงฐานข้อมูล (แยกรายค่าแบบฟอร์มปกติ)
                 for test_name, vals in clean_results_json.items():
                     current_val = vals.get('current')
@@ -150,8 +164,7 @@ def analyze():
                             
                             if existing_record:
                                 existing_record.current_value = float(current_val)
-                                if previous_val:
-                                    existing_record.previous_value = float(previous_val)
+                                existing_record.previous_value = float(previous_val) if previous_val else None
                                 existing_record.ai_analysis = analysis_result
                             else:
                                 new_record = BloodRecord(
@@ -163,6 +176,14 @@ def analyze():
                                     record_date=record_date_val
                                 )
                                 db.session.add(new_record)
+                                
+                            next_record = BloodRecord.query.filter(
+                                BloodRecord.user_id == current_user.id,
+                                BloodRecord.test_name == test_name,
+                                BloodRecord.record_date > record_date_val
+                            ).order_by(BloodRecord.record_date.asc()).first()
+                            if next_record:
+                                next_record.previous_value = float(current_val)
                         except ValueError:
                             pass # ป้องกันกรณีแปลง string เป็น float ไม่ได้
 
@@ -180,14 +201,29 @@ def analyze():
         for test in lab_tests:
             test_id = test['id']
             current_val = request.form.get(f'{test_id}_current')
-            previous_val = request.form.get(f'{test_id}_previous')
 
             if current_val and current_val.strip() != "":
-                results_dict[test_id] = {"current": current_val, "previous": previous_val if previous_val else None}
-                summary_list.append({"name": test['name'], "current": current_val, "previous": previous_val if previous_val else "-"})
+                results_dict[test_id] = {"current": current_val, "previous": None}
+                summary_list.append({"name": test['name'], "current": current_val})
 
         if results_dict:
+            for test_name, vals in results_dict.items():
+                past_record = BloodRecord.query.filter(
+                    BloodRecord.user_id == current_user.id,
+                    BloodRecord.test_name == test_name,
+                    BloodRecord.record_date < record_date_val
+                ).order_by(BloodRecord.record_date.desc()).first()
+                vals['previous'] = past_record.current_value if past_record else None
+
             analysis_result = analyze_multiple_blood_tests(results_dict)
+            
+            for s in summary_list:
+                for test in lab_tests:
+                    if test['name'] == s['name']:
+                        test_id = test['id']
+                        s['previous'] = results_dict[test_id]['previous'] or "-"
+                        break
+                        
             submitted_data = summary_list
             for test_name, vals in results_dict.items():
                 existing_record = BloodRecord.query.filter_by(
@@ -197,8 +233,7 @@ def analyze():
                 ).first()
                 if existing_record:
                     existing_record.current_value = float(vals['current'])
-                    if vals['previous']:
-                        existing_record.previous_value = float(vals['previous'])
+                    existing_record.previous_value = float(vals['previous']) if vals['previous'] else None
                     existing_record.ai_analysis = analysis_result
                 else:
                     new_record = BloodRecord(
@@ -210,6 +245,14 @@ def analyze():
                         record_date=record_date_val
                     )
                     db.session.add(new_record)
+                    
+                next_record = BloodRecord.query.filter(
+                    BloodRecord.user_id == current_user.id,
+                    BloodRecord.test_name == test_name,
+                    BloodRecord.record_date > record_date_val
+                ).order_by(BloodRecord.record_date.asc()).first()
+                if next_record:
+                    next_record.previous_value = float(vals['current'])
             db.session.commit()
         else:
             flash('กรุณากรอกผลเลือด หรือ อัปโหลดไฟล์อย่างน้อย 1 รายการครับ', 'error')
