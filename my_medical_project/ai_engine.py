@@ -1,11 +1,12 @@
-import pytesseract
-from PIL import Image, ImageEnhance # เพิ่ม ImageEnhance เข้ามา
-import pdfplumber
-import re
+import base64
+import json
 import requests
+from PIL import Image
+import io
+
 
 # ---------------------------------------------------------
-# 📚 ฐานข้อมูลคู่มือแพทย์ (MEDICAL_DICTIONARY) จัดเต็ม!
+# 📚 ฐานข้อมูลคู่มือแพทย์ (MEDICAL_DICTIONARY) จัดเต็ม! เหมือนเดิม
 # ---------------------------------------------------------
 MEDICAL_DICTIONARY = {
     # 1. หมวดไขมันในเลือด (Lipid Profile)
@@ -28,109 +29,105 @@ MEDICAL_DICTIONARY = {
     "AST": {"meaning": "เอนไซม์ตับ (ถ้าสูงแปลว่าเซลล์ตับกำลังอักเสบ/เสียหาย)", "normal": "10 - 40", "unit": "U/L"},
     "ALT": {"meaning": "เอนไซม์ตับอีกตัวที่เฉพาะเจาะจงกับตับมากกว่า AST", "normal": "9 - 43", "unit": "U/L"},
     
-    # 5. หมวดความสมบูรณ์เม็ดเลือด (ที่เคยมีจากรอบที่แล้ว เอาไว้กันเหนียว)
+    # 5. หมวดความสมบูรณ์เม็ดเลือด 
     "BASOPHIL": {"meaning": "เม็ดเลือดขาวชนิดสู้ภูมิแพ้ชนิดรุนแรง", "normal": "0 - 1", "unit": "%"},
     "LYMPHOCYTE": {"meaning": "เม็ดเลือดขาวชนิดสู้ไวรัสและการติดเชื้อเรื้อรัง", "normal": "20 - 40", "unit": "%"}
 }
 
 # ---------------------------------------------------------
-# 🛠️ ฟังก์ชันคัดแยกข้อมูลจาก OCR (เปลี่ยนให้ฉลาดขึ้นตาม Dictionary)
+# 🌟 ฟังก์ชันใหม่: ใช้ Google Gemini 2.5 Flash (ผ่าน REST API โดยตรงเพื่อแก้ปัญหา Error Python 3.8)
 # ---------------------------------------------------------
-def parse_ocr_text_to_json(raw_text):
-    data_dict = {}
-    lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
-    
-    current_test_name = None
-    
-    for line in lines:
-        line_upper = line.upper()
+def extract_and_parse_with_gemini(files, api_key):
+    if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
+        print("⚠️ กรุณาใส่ API KEY ของ Google Gemini ก่อนใช้งาน!")
+        return {}
         
-        # 🛡️ OVERFIT RULE 1: เตะ "บรรทัดเกณฑ์ปกติ" ทิ้งไปเลย!
-        # ของ รพ.หาดใหญ่ เกณฑ์ปกติจะมีวงเล็บ () หรือ ขีดกลาง - เช่น (10-30), (7.2-7.2)
-        if '(' in line or ')' in line or '-' in line:
-            # ยกเว้นบรรทัดนั้นมีชื่อค่าเลือดอย่าง AST, HDL, LDL อยู่ด้วย ถึงจะอนุญาตให้ไปต่อ
-            if not any(name in line_upper for name in ["AST", "ALT", "HDL", "LDL", "SGOT", "SGPT"]):
-                current_test_name = None # ถ้าเจอเกณฑ์ปกติ ให้ล้างสมองทิ้งเลย ป้องกันการหยิบเลขมั่ว
-                continue
-                
-        # --- 1. ค้นหาชื่อค่าเลือด ---
-        found_name = None
-        if "CHOLESTEROL" in line_upper and "LDL" not in line_upper and "HDL" not in line_upper: found_name = "CHOLESTEROL"
-        elif "TRIGLYCERIDE" in line_upper: found_name = "TRIGLYCERIDE"
-        elif "HDL" in line_upper: found_name = "HDL-C"
-        elif "LDL" in line_upper: found_name = "LDL-CHOLESTEROL"
-        elif "GLUCOSE" in line_upper or "FBS" in line_upper: found_name = "GLUCOSE"
-        elif "HBA1C" in line_upper or "A1C" in line_upper: found_name = "HBA1C"
-        elif "CREATININE" in line_upper: found_name = "CREATININE"
-        elif "GFR" in line_upper: found_name = "GFR"
-        elif "URIC" in line_upper: found_name = "URIC ACID"
-        elif "SODIUM" in line_upper: found_name = "SODIUM"
-        elif "AST" in line_upper or "SGOT" in line_upper: found_name = "AST"
-        elif "ALT" in line_upper or "SGPT" in line_upper: found_name = "ALT"
-        elif "BASOPHIL" in line_upper: found_name = "BASOPHIL"
-        elif "LYMPHOCYTE" in line_upper: found_name = "LYMPHOCYTE"
-        
-        if found_name:
-            current_test_name = found_name
-            # 🛡️ OVERFIT RULE 2: กวาดหาตัวเลขบน "บรรทัดเดียวกัน" ทันที
-            # ดึงเฉพาะ "ตัวเลขเดี่ยวๆ" ที่ไม่มีขยะติดมา
-            import re
-            matches = re.findall(r"(?<![\-\(])\b\d+(?:\.\d+)?\b(?![\-\)])", line)
-            
-            # เอาเลข 1 ออกจาก HBA1C ป้องกันการสับสน
-            valid_numbers = [m for m in matches if m not in ['1', '1C']]
-            
-            if valid_numbers:
-                val = float(valid_numbers[-1]) # เอาเลขตัวขวาสุด (ผลตรวจ)
-                if current_test_name not in data_dict:
-                    data_dict[current_test_name] = {"current": val}
-                    current_test_name = None # บันทึกเสร็จล้างสมองทันที
-            continue
-            
-        # --- 2. กรณี OCR ปัดเลขตกมาบรรทัดถัดไป (บรรทัดเดียวเพียวๆ) ---
-        if current_test_name:
-            matches = re.findall(r"(?<![\-\(])\b\d+(?:\.\d+)?\b(?![\-\)])", line)
-            if matches:
-                val = float(matches[-1])
-                if current_test_name not in data_dict:
-                    data_dict[current_test_name] = {"current": val}
-            current_test_name = None # ล้างสมองเสมอ ไม่ว่าจะเจอหรือไม่เจอ
-            
-    return data_dict
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    all_results = {}
 
-
-# ฟังก์ชันสกัดข้อความดิบจากไฟล์ (OCR)
-def extract_text_from_files(files):
-    all_text = ""
     for file in files:
         if file.filename == '': continue
-        filename = file.filename.lower()
-        try:
-            if filename.endswith(('.png', '.jpg', '.jpeg', '.webp')):
-                # 1. โหลดภาพ
+        
+        # ถ้ารูปแบบไฟล์ถูกต้อง
+        if file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+            try:
+                # 1. โหลดและลดขนาดภาพ
                 img = Image.open(file)
-                # 2. แปลงเป็นขาวดำ (Grayscale) 
-                img = img.convert('L')
-                # 3. อัดคอนทราสต์หนักๆ ให้ตัวหนังสือสีแดง/ฟ้าของ รพ.หาดใหญ่ เข้มขึ้นจนกลายเป็นสีดำ
-                enhancer = ImageEnhance.Contrast(img)
-                img = enhancer.enhance(3.0) 
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
                 
-                # 4. ส่งให้ AI อ่าน (คราวนี้ตาไม่บอดสีแล้ว)
-                text = pytesseract.image_to_string(img, lang='eng') # ใช้ eng เพียวๆ จะอ่านเลขแม่นกว่า
-                all_text += f"\n{text}\n"
-            elif filename.endswith('.pdf'):
-                # (ส่วนของ PDF ปล่อยไว้เหมือนเดิมครับ)
-                with pdfplumber.open(file) as pdf:
-                    for page in pdf.pages:
-                        extracted = page.extract_text()
-                        if extracted:
-                            all_text += extracted + "\n"
-        except Exception as e:
-            print(f"อ่านไฟล์ {file.filename} ไม่สำเร็จ: {e}")
-            
-    return all_text
+                # บีบอัดภาพเพื่อความรวดเร็วและประหยัดเน็ต
+                img.thumbnail((1024, 1024))
+                
+                buffered = io.BytesIO()
+                img.save(buffered, format="JPEG", quality=85)
+                base64_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                
+                # กฎเหล็กขั้นสูงสุด (Strict Prompt)
+                prompt = """
+                You are a highly accurate medical data extractor. 
+                CRITICAL RULES:
+                1. ONLY extract visible test names and values from the image. 
+                2. DO NOT GUESS. DO NOT HALLUCINATE. If a test is not in the image, IGNORE it.
+                
+                Extract ONLY these EXACT keys if they appear:
+                CHOLESTEROL, TRIGLYCERIDE, HDL-C, LDL-CHOLESTEROL, GLUCOSE, HBA1C, CREATININE, GFR, URIC ACID, SODIUM, AST, ALT, BASOPHIL, LYMPHOCYTE.
+                
+                Example output (if ONLY URIC ACID and AST exist):
+                {
+                    "URIC ACID": {"current": 5.1},
+                    "AST": {"current": 48.0}
+                }
+                """
+                
+                # โครงสร้าง JSON ตามมาตรฐาน Google Gemini REST API
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {"text": prompt},
+                            {"inline_data": {
+                                "mime_type": "image/jpeg",
+                                "data": base64_image
+                            }}
+                        ]
+                    }],
+                    "generationConfig": {
+                        "temperature": 0.0,
+                        "responseMimeType": "application/json"
+                    }
+                }
+                
+                print(f"🚀 กำลังให้ Google Gemini 2.5 Flash สแกนรูป {file.filename}...")
+                response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    # ดึงข้อความออกมาจากคำตอบของ Gemini
+                    text_response = data['candidates'][0]['content']['parts'][0]['text'].strip()
+                    
+                    # คลีนข้อความเผื่อ LLM แอบพ่น Markdown กลับมา (แม้จะตั้งเป็น JSON แล้วก็ตาม)
+                    if text_response.startswith("```json"):
+                        text_response = text_response[7:]
+                    elif text_response.startswith("```"):
+                        text_response = text_response[3:]
+                    
+                    if text_response.endswith("```"):
+                        text_response = text_response[:-3]
+                        
+                    # แปลงข้อความ JSON ให้กลายเป็น Dictionary
+                    result_dict = json.loads(text_response.strip())
+                    all_results.update(result_dict) 
+                else:
+                    print(f"⚠️ API Error: {response.status_code} - {response.text}")
+                
+            except Exception as e:
+                print(f"⚠️ เกิดข้อผิดพลาดในการสแกนรูป {file.filename}: {e}")
+                
+    return all_results
 
-# ฟังก์ชันให้ AI วิเคราะห์ภาพรวมแบบเหมาเข่ง -- โค้ดเดิมที่คุณเคยใช้แล้วเวิร์ค
+# ---------------------------------------------------------
+# 🧠 ฟังก์ชันคุณหมอ AI วิเคราะห์ภาพรวม (ใช้ Qwen เหมือนเดิม 100%)
+# ---------------------------------------------------------
 def analyze_multiple_blood_tests(results_dict):
     if not results_dict:
         return "ไม่มีข้อมูลผลเลือดให้วิเคราะห์"
@@ -165,7 +162,6 @@ def analyze_multiple_blood_tests(results_dict):
     data = {"model": "qwen2.5:3b", "prompt": prompt, "stream": False, "temperature": 0.3}
 
     try:
-        import requests
         response = requests.post(url, json=data)
         if response.status_code == 200:
             return response.json()['response'].strip()

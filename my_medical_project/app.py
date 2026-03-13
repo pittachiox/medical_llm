@@ -2,7 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from ai_engine import analyze_multiple_blood_tests, extract_text_from_files, parse_ocr_text_to_json, MEDICAL_DICTIONARY
+from ai_engine import analyze_multiple_blood_tests, extract_and_parse_with_gemini, MEDICAL_DICTIONARY
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'my_super_secret_key_12345'
@@ -111,11 +112,12 @@ def analyze():
         # 1. กรณีผู้ใช้อัปโหลดไฟล์
         uploaded_files = request.files.getlist('lab_files')
         if uploaded_files and uploaded_files[0].filename != '':
-            # สกัดข้อความดิบจากไฟล์
-            raw_text = extract_text_from_files(uploaded_files)
             
-            # 🛡️ Fix 1: ส่งข้อความดิบไปคัดแยกให้กลายเป็น JSON Clean
-            clean_results_json = parse_ocr_text_to_json(raw_text)
+            # 🔑 กำหนด API Key ของ Google Gemini ที่นี่
+            GEMINI_API_KEY = "AIzaSyDQ1RYF0X9g1PNfCAR1OMv6Ocx-9KL1kOc" # นำ API Key ที่ก็อปมาวางแทนคำนี้
+            
+            # 🔥 เรียกใช้ Google Gemini 1.5 Flash (สกัดค่าเลือดแบบติดปีก)
+            clean_results_json = extract_and_parse_with_gemini(uploaded_files, GEMINI_API_KEY)
             
             if clean_results_json:
                 # Fix 2: ส่ง JSON Clean ไปให้คุณหมอ AI วิเคราะห์ภาพรวม (ท่าเดิมที่คุณเริ่ก)
