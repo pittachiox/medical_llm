@@ -1,140 +1,331 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="max-w-6xl mx-auto">
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-2">
-            🔬 วิเคราะห์ผลเลือด
-        </h1>
-        <a href="/dashboard"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
-            กลับหน้าแรก
-        </a>
-    </div>
+<!DOCTYPE html>
+<html class="light" lang="en">
 
-    {% if analysis_result %}
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Smart Medical AI - Analyze Blood Test</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;900&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0284c7",
+                        "medical": {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }</script>
+    <style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+            background: radial-gradient(circle at top left, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
 
-    <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 mb-8">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">สรุปข้อมูลผลเลือดที่คุณระบุ</h3>
-        <div class="overflow-x-auto mb-6">
-            <table class="min-w-full text-left bg-gray-50 rounded-lg overflow-hidden">
-                <thead class="bg-gray-200 text-gray-700">
-                    <tr>
-                        <th class="px-4 py-2">รายการตรวจ</th>
-                        <th class="px-4 py-2 font-bold text-blue-600">ผลตรวจ</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    {% for data in submitted_data %}
-                    <tr>
-                        <td class="px-4 py-2 font-semibold text-gray-700">{{ data.name }}</td>
-                        <td class="px-4 py-2 font-bold text-blue-600">{{ data.current }}</td>
-                    </tr>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body class="dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+    <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+        <div class="layout-container flex h-full grow flex-col">
+            <!-- Top Navigation Bar -->
+            <header
+                class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-3 lg:px-20 glass-effect">
+                <div class="flex items-center gap-4 text-primary">
+                    <div class="size-8 flex items-center justify-center bg-primary/10 rounded-lg">
+                        <span class="material-symbols-outlined text-primary">medical_services</span>
+                    </div>
+                    <h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight">Smart
+                        Medical AI</h2>
+                </div>
+                <div class="flex flex-1 justify-end gap-4 lg:gap-8">
+                    <div class="flex gap-2">
+                        <a href="/dashboard"
+                            class="flex items-center justify-center rounded-xl h-10 px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors gap-2 font-bold text-sm">
+                            <span class="material-symbols-outlined text-[20px]">arrow_back</span> Dashboard
+                        </a>
+                        <button
+                            class="flex items-center justify-center rounded-xl h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
+                            <span class="material-symbols-outlined">notifications</span>
+                        </button>
+                        <button
+                            class="flex items-center justify-center rounded-xl h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
+                            <span class="material-symbols-outlined">account_circle</span>
+                        </button>
+                    </div>
+                    <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-primary/20"
+                        data-alt="Professional doctor profile headshot"
+                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDIGDSro5j-dsCQHABmI4RmSqTYFJGN0GhsxwY4OP1jKPTL_EgeCc2zGOxjJz2SisQthdsFdJUBmwoiOYvUpnX92tWvIX-n_hI3MuNLqI7dIaGFRa5v6U12QXyLCBGgxwzM4V3DomCYoxi537NmXZwuXJh2gOyDHPhhc1mKXSR-9gT73dTlsHf_yEAw74mSH5Wo8nzLyPAJFFkxgwgxSJHmrmEIs7uCXcjO84F6xgjHin6TdTuZ42B7jKrOqsLHEOl-L1xnXw47Wyc");'>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 px-6 py-8 lg:px-20 max-w-7xl mx-auto w-full">
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="mb-6 max-w-4xl mx-auto w-full">
+                    {% for category, message in messages %}
+                    <div
+                        class="p-4 mb-2 rounded-xl text-sm font-bold shadow-sm {% if category == 'error' %}bg-red-50 text-red-600 border border-red-200{% else %}bg-green-50 text-green-600 border border-green-200{% endif %}">
+                        {{ message }}
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                </div>
+                {% endif %}
+                {% endwith %}
 
-        <div class="flex gap-4">
-            <a href="/analyze"
-                class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-6 py-2 rounded-lg font-semibold transition">
-                + วิเคราะห์ผลเลือดชุดใหม่
-            </a>
-        </div>
-    </div>
-
-    <div class="bg-blue-50 p-8 rounded-xl border border-blue-200 shadow-md mb-8">
-        <h3 class="text-xl font-bold text-blue-800 mb-4">สรุปภาพรวมสุขภาพจาก AI:</h3>
-        <div class="text-gray-800 whitespace-pre-line leading-relaxed text-lg">
-            {{ analysis_result }}
-        </div>
-    </div>
-
-    {% else %}
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-1">
-            <form method="POST" action="/analyze" enctype="multipart/form-data"
-                class="bg-white p-6 rounded-xl shadow-sm border-2 border-dashed border-blue-300 h-full flex flex-col items-center justify-center text-center hover:bg-blue-50 transition">
-
-                <div class="bg-blue-100 p-4 rounded-full mb-4">
-                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                    </svg>
+                <!-- Page Title Section -->
+                <div class="mb-8 max-w-4xl mx-auto w-full text-center lg:text-left">
+                    <h1 class="text-4xl lg:text-5xl font-black text-medical-900 tracking-tight mb-4">Analyze Blood Test
+                    </h1>
+                    <p class="text-slate-600 dark:text-slate-400 text-xl max-w-3xl leading-relaxed">Upload your medical
+                        report or enter results manually to receive an AI-powered health assessment and personalized
+                        insights.</p>
                 </div>
 
-                <h3 class="text-lg font-bold text-gray-800 mb-2">อัปโหลดผลตรวจ (AI Scan)</h3>
-                <p class="text-sm text-gray-500 mb-4">รองรับไฟล์รูปภาพ (JPG, PNG) และ PDF</p>
-
-                <div class="mb-6 w-full text-left">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">วันที่ตรวจ :</label>
-                    <input type="date" name="record_date"
-                        class="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700">
-                </div>
-
-                <input type="file" name="lab_files" id="file-upload" multiple accept="image/*,.pdf" class="hidden"
-                    onchange="updateFileName(this)">
-
-                <label for="file-upload"
-                    class="cursor-pointer bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 py-2 rounded-lg font-semibold transition mb-4 w-full">
-                    เลือกไฟล์...
-                </label>
-
-                <p id="file-name-display" class="text-sm text-blue-600 font-semibold mb-4"></p>
-
-                <button type="submit"
-                    class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:bg-blue-700 transition">
-                    สแกนและวิเคราะห์เลย
-                </button>
-
-            </form>
-
-            <script>
-                function updateFileName(input) {
-                    const display = document.getElementById('file-name-display');
-                    if (input.files.length > 0) {
-                        display.textContent = `เลือกแล้ว ${input.files.length} ไฟล์`;
-                    } else {
-                        display.textContent = '';
-                    }
-                }
-            </script>
-        </div>
-
-        <div class="lg:col-span-2 bg-white p-8 rounded-xl shadow-lg border-t-4 border-blue-600">
-            <h2 class="text-xl font-bold text-gray-800 mb-6 border-b pb-4">กรอกผลเลือดด้วยตัวเอง</h2>
-            <form method="POST" action="/analyze" class="space-y-4">
-                <div class="mb-4 w-full">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">วันที่ตรวจ
-                        (สำหรับกรอกประวัติย้อนหลัง):</label>
-                    <input type="date" name="record_date"
-                        class="w-full md:w-1/2 px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700">
-                </div>
-                <div class="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-500 bg-gray-50 p-2 rounded-t-lg">
-                    <div class="col-span-6 md:col-span-8 pl-2">รายการตรวจ (Lab Test)</div>
-                    <div class="col-span-6 md:col-span-4 text-center text-blue-600">ผลตรวจ *</div>
-                </div>
-                {% for test in lab_tests %}
-                <div
-                    class="grid grid-cols-12 gap-4 items-center hover:bg-gray-50 p-2 rounded-lg transition border-b border-gray-100 last:border-0">
-                    <div class="col-span-6 md:col-span-8">
-                        <label class="font-semibold text-gray-700">{{ test.name }}</label>
-                    </div>
-                    <div class="col-span-6 md:col-span-4">
-                        <input type="number" step="0.1" name="{{ test.id }}_current"
-                            class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-center bg-blue-50/30">
-                    </div>
-                </div>
-                {% endfor %}
-                <div class="pt-6 mt-4 border-t">
-                    <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-md transition duration-200 text-lg flex justify-center items-center gap-2">
-                        ประมวลผลภาพรวมสุขภาพ
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-200 dark:border-slate-800 mb-8 gap-8 max-w-4xl mx-auto w-full">
+                    <button id="tab-scan" onclick="switchTab('scan')"
+                        class="flex-1 flex items-center justify-center gap-3 border-b-4 border-medical-600 pb-4 px-1 text-medical-600 font-bold text-xl transition-all">
+                        <span class="material-symbols-outlined text-2xl">document_scanner</span>
+                        AI Scan / Upload
+                    </button>
+                    <button id="tab-manual" onclick="switchTab('manual')"
+                        class="flex-1 flex items-center justify-center gap-3 border-b-4 border-transparent pb-4 px-1 text-slate-400 font-semibold hover:text-medical-600 transition-all text-xl">
+                        <span class="material-symbols-outlined text-2xl">edit_note</span>
+                        Manual Entry
                     </button>
                 </div>
-            </form>
+
+                <!-- Global Date Picker -->
+                <div class="max-w-md mx-auto mb-10 text-center">
+                    <label class="block cursor-pointer">
+                        <span class="text-medical-900 font-bold text-lg mb-3 block">Test Collection Date</span>
+                        <div
+                            class="relative shadow-sm rounded-2xl overflow-hidden hover:ring-2 hover:ring-medical-600 transition-all">
+                            <span
+                                class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-medical-600 pointer-events-none z-10">calendar_today</span>
+                            <input id="global-date" onchange="syncDates(this.value)"
+                                class="w-full pl-12 py-4 rounded-2xl border-0 bg-white text-medical-900 text-lg focus:ring-0 focus:border-0 font-medium cursor-pointer"
+                                type="date" required />
+                        </div>
+                    </label>
+                </div>
+
+                <div class="flex flex-col gap-8 items-center">
+                    <!-- Left Section: AI Scan / Upload -->
+                    <section id="section-scan"
+                        class="bg-white dark:bg-slate-900 rounded-2xl p-6 lg:p-8 shadow-sm border border-slate-100 dark:border-slate-800 glass-effect shadow-xl w-full max-w-4xl block transition-opacity duration-300 opacity-100">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary">cloud_upload</span>
+                            </div>
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white">AI Scan / Upload</h2>
+                        </div>
+                        <form action="/analyze" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="record_date" id="scan-record-date">
+                            <div onclick="document.getElementById('file-upload').click()"
+                                class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-10 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer group mb-6 hover:border-medical-500">
+                                <div
+                                    class="size-16 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center shadow-md mb-4 group-hover:scale-110 transition-transform">
+                                    <span class="material-symbols-outlined text-primary text-3xl">upload_file</span>
+                                </div>
+                                <p class="text-lg font-bold text-slate-900 dark:text-white mb-1" id="file-upload-text">
+                                    Upload Blood Test Report</p>
+                                <p class="text-slate-500 dark:text-slate-400 text-sm mb-4 text-center">Drag and drop
+                                    your files here, or click to browse</p>
+                                <div class="flex gap-4">
+                                    <span
+                                        class="px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-semibold text-slate-600 dark:text-slate-300">JPG</span>
+                                    <span
+                                        class="px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-semibold text-slate-600 dark:text-slate-300">PNG</span>
+                                    <span
+                                        class="px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-semibold text-slate-600 dark:text-slate-300">PDF</span>
+                                </div>
+                                <input type="file" id="file-upload" name="lab_files" multiple class="hidden"
+                                    accept=".jpg,.jpeg,.png,.pdf" onchange="updateFileText(this)">
+                            </div>
+                            <button type="submit"
+                                class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-colors shadow-lg shadow-primary/20 bg-medical-600 hover:bg-medical-700 py-5 text-xl">
+                                <span class="material-symbols-outlined text-2xl">clinical_notes</span>
+                                Scan and Analyze Now
+                            </button>
+                        </form>
+                    </section>
+
+                    <!-- Right Section: Manual Entry Section -->
+                    <section id="section-manual"
+                        class="bg-white dark:bg-slate-900 rounded-2xl p-6 lg:p-8 shadow-sm border border-slate-100 dark:border-slate-800 glass-effect shadow-xl w-full max-w-4xl hidden transition-opacity duration-300 opacity-0 h-0 overflow-hidden">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary">edit_note</span>
+                            </div>
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Manual Data Entry</h2>
+                        </div>
+                        <form action="/analyze" method="POST">
+                            <input type="hidden" name="record_date" id="manual-record-date">
+                            <div class="overflow-hidden border border-slate-200 dark:border-slate-700 rounded-xl mb-8">
+                                <table class="w-full text-left border-collapse">
+                                    <thead class="bg-slate-50 dark:bg-slate-800/50 bg-medical-50">
+                                        <tr>
+                                            <th
+                                                class="px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-medical-900 text-base py-4">
+                                                Lab Test Name</th>
+                                            <th
+                                                class="px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-medical-900 text-base py-4">
+                                                Result *</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                        {% for test in lab_tests %}
+                                        <tr class="hover:bg-slate-50 transition-colors">
+                                            <td
+                                                class="px-4 py-4 text-slate-800 dark:text-slate-200 font-medium text-lg pl-6">
+                                                {{ test.name }}</td>
+                                            <td class="px-4 py-3 text-lg pr-6"><input name="test_{{ test.id }}"
+                                                    class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-medical-600 focus:border-medical-600 px-4 py-3 transition-colors h-12"
+                                                    placeholder="Ex: 95.0 mg/dL" type="text" /></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="submit"
+                                class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-colors shadow-lg shadow-primary/20 bg-medical-600 hover:bg-medical-700 py-5 text-xl">
+                                <span class="material-symbols-outlined text-2xl">summarize</span>
+                                Process Overall Health Summary
+                            </button>
+                        </form>
+                    </section>
+                </div>
+
+                <!-- Footer Section Info -->
+                <div
+                    class="mt-16 p-8 bg-medical-50 rounded-3xl border border-medical-100 flex items-start gap-6 max-w-4xl mx-auto">
+                    <span class="material-symbols-outlined text-medical-600 text-3xl">verified_user</span>
+                    <div>
+                        <h4 class="font-bold text-medical-900 text-xl mb-2">How it works</h4>
+                        <p class="text-slate-700 text-lg leading-relaxed">Our medical-grade AI extracts key biomarkers
+                            from your reports using OCR technology and cross-references them with standard medical
+                            guidelines to identify trends and potential health risks. This analysis is meant for
+                            informational purposes and should be discussed with your physician.</p>
+                    </div>
+                </div>
+            </main>
+            <!-- Bottom Spacer for better mobile feel -->
+            <footer class="py-10 text-center text-slate-400 text-sm">
+                © 2024 Smart Medical AI. All data is encrypted and HIPAA compliant.
+            </footer>
         </div>
     </div>
-    {% endif %}
-</div>
-{% endblock %}
+
+    <script>
+        // Initialize date pickers to today's date
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('global-date');
+            dateInput.value = today;
+            syncDates(today);
+        });
+
+        function syncDates(val) {
+            document.getElementById('scan-record-date').value = val;
+            document.getElementById('manual-record-date').value = val;
+        }
+
+        function switchTab(tabName) {
+            const scanBtn = document.getElementById('tab-scan');
+            const manualBtn = document.getElementById('tab-manual');
+            const scanSection = document.getElementById('section-scan');
+            const manualSection = document.getElementById('section-manual');
+
+            if (tabName === 'scan') {
+                scanBtn.classList.add('border-medical-600', 'text-medical-600');
+                scanBtn.classList.remove('border-transparent', 'text-slate-400', 'hover:text-medical-600');
+
+                manualBtn.classList.remove('border-medical-600', 'text-medical-600');
+                manualBtn.classList.add('border-transparent', 'text-slate-400', 'hover:text-medical-600');
+
+                // Animation for scan section
+                manualSection.classList.add('opacity-0');
+                setTimeout(() => {
+                    manualSection.classList.add('hidden', 'h-0');
+                    manualSection.classList.remove('block', 'h-auto');
+
+                    scanSection.classList.remove('hidden', 'h-0');
+                    scanSection.classList.add('block', 'h-auto');
+                    setTimeout(() => scanSection.classList.remove('opacity-0'), 50);
+                }, 200);
+
+            } else {
+                manualBtn.classList.add('border-medical-600', 'text-medical-600');
+                manualBtn.classList.remove('border-transparent', 'text-slate-400', 'hover:text-medical-600');
+
+                scanBtn.classList.remove('border-medical-600', 'text-medical-600');
+                scanBtn.classList.add('border-transparent', 'text-slate-400', 'hover:text-medical-600');
+
+                // Animation for manual section
+                scanSection.classList.add('opacity-0');
+                setTimeout(() => {
+                    scanSection.classList.add('hidden', 'h-0');
+                    scanSection.classList.remove('block', 'h-auto');
+
+                    manualSection.classList.remove('hidden', 'h-0');
+                    manualSection.classList.add('block', 'h-auto');
+                    setTimeout(() => manualSection.classList.remove('opacity-0'), 50);
+                }, 200);
+            }
+        }
+
+        function updateFileText(input) {
+            const textElement = document.getElementById('file-upload-text');
+            if (input.files && input.files.length > 0) {
+                if (input.files.length === 1) {
+                    textElement.textContent = "Selected: " + input.files[0].name;
+                } else {
+                    textElement.textContent = "Selected " + input.files.length + " files";
+                }
+                textElement.classList.add('text-medical-600');
+                textElement.parentElement.classList.add('border-medical-600', 'bg-medical-50');
+                textElement.parentElement.classList.remove('border-slate-200');
+            } else {
+                textElement.textContent = 'Upload Blood Test Report';
+                textElement.classList.remove('text-medical-600');
+                textElement.parentElement.classList.remove('border-medical-600', 'bg-medical-50');
+                textElement.parentElement.classList.add('border-slate-200');
+            }
+        }
+    </script>
+</body>
+
+</html>

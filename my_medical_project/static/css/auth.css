@@ -1,0 +1,12 @@
+/* Custom Styles for Authentication Pages */
+body.auth-bg {
+    background: radial-gradient(circle at top left, #f0f9ff 0%, #e0f2fe 100%);
+    min-height: 100vh;
+}
+
+.auth-glass-effect {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}

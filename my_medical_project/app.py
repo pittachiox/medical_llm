@@ -83,18 +83,70 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+def extract_short_advice(ai_text, test_name):
+    if not ai_text:
+        return "ไม่มีคำแนะนำจาก AI"
+    
+    # ลบ <tool_call> เผื่อ AI หลุดเขียนมา
+    ai_text = ai_text.replace("<tool_call>", "").replace("</tool_call>", "")
+    
+    lines = ai_text.split('\n')
+    extracted = ""
+    found = False
+    
+    for line in lines:
+        if test_name.upper() in line.upper() and ('📌' in line or f"[{test_name.upper()}]" in line.upper() or f"{test_name.upper()}:" in line.upper() or f"{test_name.upper()} " in line.upper()):
+            found = True
+        elif found:
+            if '📌' in line or '🌟' in line or '---' in line:
+                break
+            if '👉' in line or '💡' in line:
+                extracted += line.strip() + " "
+    
+    if extracted:
+        return extracted.strip()[:200] + "..." if len(extracted) > 200 else extracted.strip()
+    return ai_text.replace('\n', ' ')[:120].strip() + "..."
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     all_records = BloodRecord.query.filter_by(user_id=current_user.id).order_by(BloodRecord.record_date.desc(), BloodRecord.id.desc()).all()
     history = []
     seen_tests = set()
+    active_alerts = 0
+    
     for record in all_records:
         name_lower = record.test_name.lower().strip()
         if name_lower not in seen_tests:
             seen_tests.add(name_lower)
+            
+            # ดึงคำแนะนำสั้นๆ
+            record.short_advice = extract_short_advice(record.ai_analysis, record.test_name)
+            
+            # คำนวณแนวโน้มทางการแพทย์
+            record.trend_color = "slate"
+            record.trend_icon = "horizontal_rule"
+            
+            if record.previous_value is not None:
+                diff = record.current_value - record.previous_value
+                if diff > 0: # ปัจจุบันมากกว่าอดีต
+                    record.trend_icon = "trending_up"
+                    if "HDL" in record.test_name.upper() or "GFR" in record.test_name.upper():
+                        record.trend_color = "green" # มากกว่า = ดี (สำหรับตัวที่ดี)
+                    else:
+                        record.trend_color = "orange" # มากกว่า = แย่ (สำหรับตัวที่เลว)
+                        active_alerts += 1
+                elif diff < 0: # ปัจจุบันน้อยกว่าอดีต
+                    record.trend_icon = "trending_down"
+                    if "HDL" in record.test_name.upper() or "GFR" in record.test_name.upper():
+                        record.trend_color = "orange" # น้อยกว่า = แย่
+                        active_alerts += 1
+                    else:
+                        record.trend_color = "green" # น้อยกว่า = ดี
+                        
             history.append(record)
-    return render_template('dashboard.html', name=current_user.username, history=history)
+            
+    return render_template('dashboard.html', name=current_user.username, history=history, active_alerts=active_alerts)
 
 @app.route('/analyze', methods=['GET', 'POST'])
 @login_required
@@ -200,7 +252,7 @@ def analyze():
         summary_list = [] 
         for test in lab_tests:
             test_id = test['id']
-            current_val = request.form.get(f'{test_id}_current')
+            current_val = request.form.get(f'test_{test_id}')
 
             if current_val and current_val.strip() != "":
                 results_dict[test_id] = {"current": current_val, "previous": None}
@@ -254,10 +306,12 @@ def analyze():
                 if next_record:
                     next_record.previous_value = float(vals['current'])
             db.session.commit()
+            return render_template('analyze_ocr_result.html', clean_results_json=results_dict, analysis_result=analysis_result, MEDICAL_DICTIONARY=MEDICAL_DICTIONARY)
         else:
             flash('กรุณากรอกผลเลือด หรือ อัปโหลดไฟล์อย่างน้อย 1 รายการครับ', 'error')
+            return redirect(url_for('analyze'))
 
-    return render_template('analyze.html', lab_tests=lab_tests, analysis_result=analysis_result, submitted_data=submitted_data, is_ocr=False)
+    return render_template('analyze.html', lab_tests=lab_tests, analysis_result=None, submitted_data=None, is_ocr=False)
 
 # --- หน้าใหม่: สำหรับกดเข้ามาอ่านประวัติฉบับเต็ม ---
 @app.route('/record/<int:record_id>')

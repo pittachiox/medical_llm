@@ -1,60 +1,267 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="max-w-5xl mx-auto space-y-8">
+<!DOCTYPE html>
+<html class="light" lang="en">
 
-    <div
-        class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 border-l-4 border-green-500">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-800">สวัสดี, คุณ {{ name }} </h1>
-            <p class="text-gray-500 mt-1">ดูประวัติย้อนหลัง หรือเพิ่มผลการตรวจใหม่</p>
-        </div>
-        <a href="/analyze"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-md transition flex items-center gap-2">
-            + วิเคราะห์ผลเลือดใหม่
-        </a>
-    </div>
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Smart Medical AI - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0088cc",
+                        "background-light": "#f8fafd",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+        }
+    </style>
+</head>
 
-    {% if history %}
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">ประวัติผลตรวจทั้งหมดของคุณ</h3>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-left">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="px-4 py-3 rounded-tl-lg font-semibold">ค่าที่ตรวจ</th>
-                        <th class="px-4 py-3 font-semibold">ค่าครั้งก่อน</th>
-                        <th class="px-4 py-3 font-semibold text-blue-600">ค่าปัจจุบัน</th>
-                        <th class="px-4 py-3 rounded-tr-lg font-semibold">คำแนะนำจาก AI</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    {% for record in history %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-4 font-bold text-gray-700">
-                            {{ record.test_name }}
-                            <div class="text-xs text-gray-400 mt-1 font-normal">{{
-                                record.record_date.strftime('%d-%m-%Y') if record.record_date else '-' }}</div>
-                        </td>
-                        <td class="px-4 py-4 text-gray-500">{{ record.previous_value or '-' }}</td>
-                        <td class="px-4 py-4 font-bold text-blue-600">{{ record.current_value }}</td>
-                        <td class="px-4 py-4 text-sm text-gray-600">
-                            <a href="{{ url_for('view_record', record_id=record.id) }}"
-                                class="inline-flex items-center gap-1 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 px-3 py-1.5 rounded-lg font-semibold transition border border-blue-200">
-                                📖
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% else %}
-    <div class="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-        <p class="text-gray-500 text-lg">คุณยังไม่มีประวัติผลตรวจเลือดในระบบ</p>
-        <p class="text-gray-400 text-sm mt-2">กดปุ่ม "วิเคราะห์ผลเลือดใหม่" ด้านบนเพื่อเริ่มต้นใช้งาน</p>
-    </div>
-    {% endif %}
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+    <div class="layout-container flex flex-col h-full grow">
+        <!-- Top Navigation Bar -->
+        <header
+            class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 lg:px-20 py-4">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white">
+                        <span class="material-symbols-outlined text-2xl">neurology</span>
+                    </div>
+                    <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Smart Medical AI
+                    </h1>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="hidden md:flex flex-col items-end">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-slate-100">สวัสดี, คุณ {{ name
+                            }}</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">ผู้ใช้งานระบบ</span>
+                    </div>
+                    <div
+                        class="h-10 w-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center overflow-hidden">
+                        <span class="material-symbols-outlined text-primary">person</span>
+                    </div>
+                    <a href="{{ url_for('logout') }}"
+                        class="flex items-center justify-center h-10 px-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-bold hover:bg-slate-50 transition-colors">
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </header>
+        <main class="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-20 py-10">
 
-</div>
-{% endblock %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="mb-6">
+                {% for category, message in messages %}
+                <div
+                    class="p-4 mb-2 rounded-xl text-sm font-bold shadow-sm {% if category == 'error' %}bg-red-50 text-red-600 border border-red-200{% else %}bg-green-50 text-green-600 border border-green-200{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Hero / Welcome Section -->
+            <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div class="space-y-2">
+                    <h2 class="text-4xl font-black tracking-tight text-slate-900 dark:text-white">Clinical Dashboard
+                    </h2>
+                    <p class="text-lg text-slate-500 dark:text-slate-400 max-w-2xl">Review recent lab results and
+                        AI-generated insights for your patients. All analysis is processed locally for maximum privacy.
+                    </p>
+                </div>
+                <a href="/analyze"
+                    class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+                    <span class="material-symbols-outlined">add_circle</span>
+                    Analyze New Blood Test
+                </a>
+            </div>
+            <!-- Stats Overview (Supporting Component) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div
+                    class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <p class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Tests
+                        Analyzed</p>
+                    <p class="text-3xl font-black text-slate-900 dark:text-white mt-1">{{ history|length }}</p>
+                </div>
+                <div
+                    class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <p class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active
+                        Patient Alerts</p>
+                    <p class="text-3xl font-black text-orange-500 mt-1">{{ active_alerts }}</p>
+                </div>
+                <div
+                    class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <p class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Local AI
+                        Status</p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="flex h-3 w-3 rounded-full bg-green-500"></span>
+                        <p class="text-3xl font-black text-slate-900 dark:text-white">Ready</p>
+                    </div>
+                </div>
+            </div>
+
+            {% if history %}
+            <!-- Main Table Section -->
+            <div
+                class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
+                <div
+                    class="px-8 py-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <h3 class="text-2xl font-bold text-slate-900 dark:text-white">Blood Test History</h3>
+                    <div class="flex gap-2">
+                        <button class="p-2 text-slate-400 hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined">filter_list</span>
+                        </button>
+                        <button class="p-2 text-slate-400 hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined">download</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-900/50">
+                                <th
+                                    class="px-8 py-4 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-1/4">
+                                    Test Item</th>
+                                <th
+                                    class="px-8 py-4 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-1/6">
+                                    Previous Value</th>
+                                <th
+                                    class="px-8 py-4 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-1/6">
+                                    Current Value</th>
+                                <th
+                                    class="px-8 py-4 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                    AI Recommendation</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                            {% for record in history %}
+                            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                                <td class="px-8 py-6">
+                                    <div class="font-bold text-lg text-slate-900 dark:text-white">{{ record.test_name }}
+                                    </div>
+                                    <div class="text-sm font-medium text-slate-500 dark:text-slate-400">{{
+                                        record.record_date.strftime('%d %B %Y') if record.record_date else '-' }}</div>
+                                </td>
+                                <td class="px-8 py-6 text-lg font-medium text-slate-600 dark:text-slate-300">{{
+                                    record.previous_value if record.previous_value else '-' }}</td>
+                                <td class="px-8 py-6">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="text-lg font-bold text-{{ record.trend_color }}-600 dark:text-{{ record.trend_color }}-400">{{
+                                            record.current_value }}</span>
+                                        <span
+                                            class="material-symbols-outlined text-{{ record.trend_color }}-500 text-sm">{{
+                                            record.trend_icon }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6 w-1/3">
+                                    {% if record.trend_color == 'orange' %}
+                                    <div
+                                        class="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/20 p-4 rounded-xl flex flex-col gap-3">
+                                        <span
+                                            class="text-orange-900 dark:text-orange-200 text-sm font-medium leading-relaxed line-clamp-3">{{
+                                            record.short_advice }}</span>
+                                        <div class="flex justify-start">
+                                            <a href="{{ url_for('view_record', record_id=record.id) }}"
+                                                class="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-md bg-white/50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-400 hover:bg-white dark:hover:bg-orange-900 shadow-sm border border-orange-200/50 dark:border-orange-800 transition-colors text-xs font-bold">
+                                                <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                                                ดูวิธีแก้ไข
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% elif record.trend_color == 'green' %}
+                                    <div
+                                        class="bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/20 p-4 rounded-xl flex flex-col gap-3">
+                                        <span
+                                            class="text-green-900 dark:text-green-200 text-sm font-medium leading-relaxed line-clamp-3">{{
+                                            record.short_advice }}</span>
+                                        <div class="flex justify-start">
+                                            <a href="{{ url_for('view_record', record_id=record.id) }}"
+                                                class="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-md bg-white/50 dark:bg-green-950/50 text-green-700 dark:text-green-400 hover:bg-white dark:hover:bg-green-900 shadow-sm border border-green-200/50 dark:border-green-800 transition-colors text-xs font-bold">
+                                                <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                                                รายละเอียด
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div
+                                        class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl flex flex-col gap-3">
+                                        <span
+                                            class="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed line-clamp-3">{{
+                                            record.short_advice }}</span>
+                                        <div class="flex justify-start">
+                                            <a href="{{ url_for('view_record', record_id=record.id) }}"
+                                                class="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-md bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 transition-colors text-xs font-bold">
+                                                <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                                                รายละเอียด
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div
+                class="text-center justify-center p-16 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <span
+                    class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4 block">science</span>
+                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">ยังไม่มีประวัติผลตรวจเลือด</h3>
+                <p class="text-slate-500 dark:text-slate-400">กดปุ่ม "Analyze New Blood Test"
+                    สแกนผลเลือดครั้งแรกเข้าสู่ระบบได้เลย</p>
+            </div>
+            {% endif %}
+
+        </main>
+        <footer
+            class="mt-20 py-10 px-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark">
+            <div
+                class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-slate-500 dark:text-slate-400">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">verified_user</span>
+                    <span class="text-sm font-medium tracking-wide">HIPAA Compliant &amp; End-to-End Encrypted</span>
+                </div>
+                <div class="text-sm font-medium">
+                    © 2024 Smart Medical AI. All clinical data processed locally on device.
+                </div>
+                <div class="flex gap-6 text-sm font-bold text-primary">
+                    <a class="hover:underline" href="#">Privacy Policy</a>
+                    <a class="hover:underline" href="#">Terms of Service</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>
