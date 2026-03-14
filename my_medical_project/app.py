@@ -158,15 +158,41 @@ def dashboard():
 def analyze():
     # รายชื่อผลเลือดที่จะเอาไปสร้างฟอร์มในหน้าเว็บ (โค้ดเดิม)
     lab_tests = [
-        {"id": "LDL", "name": "LDL (ไขมันเลว)"},
-        {"id": "CHOLESTEROL", "name": "Cholesterol (คอเลสเตอรอลรวม)"},
-        {"id": "TRIGLYCERIDE", "name": "Triglyceride (ไตรกลีเซอไรด์)"},
-        {"id": "HDL-C", "name": "HDL-C (ไขมันดี)"},
-        {"id": "GLUCOSE", "name": "Glucose (น้าตาลในเลือด)"},
-        {"id": "CREATININE", "name": "Creatinine (การทำงานไต)"},
-        {"id": "URIC ACID", "name": "Uric Acid (กรดยูริก)"}
-        # (คุณสามารถเพิ่ม ALT, AST, BASOPHIL, LYMPHOCYTE ลงตรงนี้ทีหลังได้)
+        # --- กลุ่มไขมัน ---
+        {"id": "CHOLESTEROL",    "name": "CHOLESTEROL — คอเลสเตอรอลรวม"},
+        {"id": "TRIGLYCERIDE",   "name": "TRIGLYCERIDE — ไตรกลีเซอไรด์"},
+        {"id": "HDL-C",          "name": "HDL-C — ไขมันดี"},
+        {"id": "LDL",            "name": "LDL — ไขมันเลว"},
+        # --- กลุ่มน้ำตาล ---
+        {"id": "GLUCOSE",        "name": "GLUCOSE — น้ำตาลในเลือด"},
+        {"id": "HBA1C",          "name": "HBA1C — น้ำตาลสะสม 3 เดือน"},
+        # --- กลุ่มไต ---
+        {"id": "CREATININE",     "name": "CREATININE — การทำงานของไต"},
+        {"id": "GFR",            "name": "GFR — ประสิทธิภาพการกรองของไต"},
+        {"id": "URIC ACID",      "name": "URIC ACID — กรดยูริก (เก๊าท์)"},
+        {"id": "A:C",            "name": "A:C — โปรตีนรั่วจากไต"},
+        # --- กลุ่มตับและเกลือแร่ ---
+        {"id": "AST",            "name": "AST — เอนไซม์ตับ/กล้ามเนื้อ"},
+        {"id": "ALT",            "name": "ALT — เอนไซม์ตับ"},
+        {"id": "SODIUM",         "name": "SODIUM — โซเดียม"},
+        {"id": "POTASSIUM",      "name": "POTASSIUM — โพแทสเซียม"},
+        # --- กลุ่มเม็ดเลือดแดง ---
+        {"id": "RBC",            "name": "RBC — เม็ดเลือดแดง"},
+        {"id": "HCT",            "name": "HCT — ความเข้มข้นเม็ดเลือดแดง"},
+        {"id": "MCV",            "name": "MCV — ขนาดเม็ดเลือดแดง"},
+        {"id": "MCH",            "name": "MCH — ฮีโมโกลบินเฉลี่ยต่อเซลล์"},
+        {"id": "MCHC",           "name": "MCHC — ความเข้มข้นฮีโมโกลบิน"},
+        # --- กลุ่มเม็ดเลือดขาว ---
+        {"id": "NEUTROPHIL",     "name": "NEUTROPHIL — เม็ดเลือดขาวสู้แบคทีเรีย"},
+        {"id": "NE#",            "name": "NE# — จำนวนนิวโทรฟิลสัมบูรณ์"},
+        {"id": "LYMPHOCYTE",     "name": "LYMPHOCYTE — เม็ดเลือดขาวสู้ไวรัส"},
+        {"id": "EOSINOPHIL",     "name": "EOSINOPHIL — เม็ดเลือดขาวสู้ภูมิแพ้/พยาธิ"},
+        {"id": "BASOPHIL",       "name": "BASOPHIL — เม็ดเลือดขาวภูมิแพ้รุนแรง"},
+        # --- กลุ่มเกล็ดเลือด ---
+        {"id": "PLATELET COUNT", "name": "PLATELET COUNT — เกล็ดเลือด"},
+        {"id": "MPV",            "name": "MPV — ขนาดเฉลี่ยเกล็ดเลือด"},
     ]
+
 
     analysis_result = None
     submitted_data = None
@@ -187,9 +213,9 @@ def analyze():
         uploaded_files = request.files.getlist('lab_files')
         if uploaded_files and uploaded_files[0].filename != '':
             
-            # 🔑 กำหนด API Key ของ Google Gemini ที่นี่
-            GEMINI_API_KEY = "AIzaSyD_7fimlgSXyXiy-q1t9RD_xxxYVRb7IEc" # นำ API Key ที่ก็อปมาวางแทนคำนี้
-            
+            # ดึง API Key มาจากไฟล์ .env แทนการพิมพ์ลงไปตรงๆ
+            GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
             # 🔥 เรียกใช้ Google Gemini 1.5 Flash (สกัดค่าเลือดแบบติดปีก)
             clean_results_json = extract_and_parse_with_gemini(uploaded_files, GEMINI_API_KEY)
             
@@ -323,11 +349,40 @@ def analyze():
 @login_required
 def view_record(record_id):
     record = BloodRecord.query.get_or_404(record_id)
-    # ป้องกันไม่ให้คนอื่นแอบดูผลเลือดเรา
     if record.user_id != current_user.id:
         flash('ไม่อนุญาตให้เข้าถึงข้อมูลนี้', 'error')
         return redirect(url_for('dashboard'))
-    return render_template('view_record.html', record=record)
+
+    # ดึงเฉพาะ section ของค่าเลือดนั้นๆ จาก AI text
+    # รองรับทั้งกรณีที่ text เป็นก้อนรวม (หลายค่า) และก้อนเดี่ยว
+    ai_text = record.ai_analysis or ""
+    test_name_up = record.test_name.upper() if record.test_name else ""
+    focused_analysis = ai_text  # default: โชว์ทั้งหมดถ้าหาไม่เจอ
+
+    if ai_text and '📌' in ai_text:
+        lines = ai_text.split('\n')
+        inside_section = False
+        extracted_lines = []
+
+        for line in lines:
+            # ตรวจว่าเป็น header ของ section ค่าเลือดนี้ไหม
+            if '📌' in line and test_name_up in line.upper():
+                inside_section = True
+                extracted_lines.append(line)
+            elif inside_section:
+                # ถ้าเจอ 📌 ตัวใหม่ (section ถัดไป) ให้หยุด
+                if '📌' in line and test_name_up not in line.upper():
+                    break
+                # หยุดที่ 🌟 ซึ่งเป็นสรุปรวม
+                if '🌟' in line:
+                    break
+                extracted_lines.append(line)
+
+        if extracted_lines:
+            focused_analysis = '\n'.join(extracted_lines).strip()
+
+    return render_template('view_record.html', record=record, focused_analysis=focused_analysis)
+
 
 if __name__ == '__main__':
     with app.app_context():
