@@ -4,6 +4,11 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 from ai_engine import analyze_multiple_blood_tests, extract_and_parse_with_gemini, MEDICAL_DICTIONARY
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+# โหลดค่าจากไฟล์ .env
+load_dotenv()
 
 
 
@@ -183,7 +188,7 @@ def analyze():
         if uploaded_files and uploaded_files[0].filename != '':
             
             # 🔑 กำหนด API Key ของ Google Gemini ที่นี่
-            GEMINI_API_KEY = "AIzaSyDQ1RYF0X9g1PNfCAR1OMv6Ocx-9KL1kOc" # นำ API Key ที่ก็อปมาวางแทนคำนี้
+            GEMINI_API_KEY = "AIzaSyD_7fimlgSXyXiy-q1t9RD_xxxYVRb7IEc" # นำ API Key ที่ก็อปมาวางแทนคำนี้
             
             # 🔥 เรียกใช้ Google Gemini 1.5 Flash (สกัดค่าเลือดแบบติดปีก)
             clean_results_json = extract_and_parse_with_gemini(uploaded_files, GEMINI_API_KEY)

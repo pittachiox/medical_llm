@@ -1,66 +1,202 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="max-w-6xl mx-auto space-y-8">
+<!DOCTYPE html>
+<html class="light" lang="en">
 
-    <div class="flex items-center justify-between mb-6 pb-4 border-b">
-        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-2">
-            🔬 สรุปการสแกนผลเลือด (AI Scan)
-        </h1>
-        <div class="flex gap-4">
-            <a href="/analyze"
-                class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-6 py-2 rounded-lg font-semibold transition">
-                + สแกนไฟล์ใหม่
-            </a>
-            <a href="/dashboard"
-                class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
-                กลับหน้าหลัก
-            </a>
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Smart Medical AI - Lab Results</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0ea5e9",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+    <!-- Top Navigation Bar -->
+    <header
+        class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary">
+                        <span class="material-symbols-outlined text-3xl">health_metrics</span>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Smart Medical AI</h1>
+                </div>
+                <div class="flex gap-3">
+                    <a href="/dashboard"
+                        class="hidden sm:flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-all font-semibold text-sm">
+                        <span class="material-symbols-outlined text-lg">dashboard</span>
+                        <span>Back to Dashboard</span>
+                    </a>
+                    <a href="/analyze"
+                        class="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 transition-all font-semibold text-sm">
+                        <span class="material-symbols-outlined text-lg">add_a_photo</span>
+                        <span>New Scan</span>
+                    </a>
+                </div>
+            </div>
         </div>
-    </div>
+    </header>
+    <main class="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:py-12">
+        <!-- Page Title & Header -->
+        <div class="mb-10">
+            <nav class="flex mb-4 text-sm font-medium text-slate-500 dark:text-slate-400 gap-2 items-center">
+                <span>Reports</span>
+                <span class="material-symbols-outlined text-xs">chevron_right</span>
+                <span class="text-primary">Current Analysis</span>
+            </nav>
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                        Smart Medical Lab Trend Analyzer
+                    </h2>
+                    <p class="mt-2 text-lg text-slate-600 dark:text-slate-400">
+                        Detailed blood work analysis and intelligent health insights.
+                    </p>
+                </div>
+                <div
+                    class="flex items-center gap-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-800">
+                    <span class="material-symbols-outlined text-sm">calendar_today</span>
+                    <span>Analyzed Today</span>
+                </div>
+            </div>
+        </div>
 
-    <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-green-500 mb-8">
-        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            📊 ค่าเลือดที่สกัดได้จากไฟล์ (กรุณาตรวจสอบความถูกต้อง)
-        </h3>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-left bg-gray-50 rounded-lg overflow-hidden">
-                <thead class="bg-gray-200 text-gray-700">
-                    <tr>
-                        <th class="px-4 py-2">รายการตรวจ</th>
-                        <th class="px-4 py-2 font-bold text-blue-600 text-center">ผลที่ตรวจได้</th>
-                        <th class="px-4 py-2 text-center text-gray-500">เกณฑ์ปกติ</th>
-                        <th class="px-4 py-2 text-center text-gray-500">หน่วย</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    {% for test_id, vals in clean_results_json.items() %}
-                    <tr>
-                        <td class="px-4 py-3 font-semibold text-gray-700">{{ test_id }}</td>
-                        <td class="px-4 py-3 font-bold text-blue-600 text-center text-xl">{{ vals.current }}</td>
-                        <td class="px-4 py-3 text-center text-gray-500">{{ MEDICAL_DICTIONARY.get(test_id,
-                            {}).get('normal', '-') }}</td>
-                        <td class="px-4 py-3 text-center text-gray-500">{{ MEDICAL_DICTIONARY.get(test_id,
-                            {}).get('unit', '-') }}</td>
-                    </tr>
+        <!-- Section 1: Extracted Blood Values -->
+        <section
+            class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-8">
+            <div
+                class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">lab_research</span>
+                    Extracted Blood Values
+                </h3>
+                <span
+                    class="text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2.5 py-1 rounded-full uppercase">Verified
+                    by AI</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-800/30">
+                            <th
+                                class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Test Item</th>
+                            <th
+                                class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Result</th>
+                            <th
+                                class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Normal Range</th>
+                            <th
+                                class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for test_id, vals in clean_results_json.items() %}
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                            <td class="px-6 py-5 font-semibold text-slate-900 dark:text-white">{{ test_id }}</td>
+                            <td class="px-6 py-5">
+                                <span class="text-lg font-bold text-primary dark:text-primary">{{ vals.current }}</span>
+                            </td>
+                            <td class="px-6 py-5 text-slate-600 dark:text-slate-400">{{ MEDICAL_DICTIONARY.get(test_id,
+                                {}).get('normal', '-') }}</td>
+                            <td class="px-6 py-5 text-slate-500">{{ MEDICAL_DICTIONARY.get(test_id, {}).get('unit', '-')
+                                }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 text-xs text-slate-500 dark:text-slate-400 italic">
+                * หมายเหตุ: ระบบ AI สแกนอาจอ่านค่าเพี้ยนได้ในบางกรณี หากข้อมูลไม่ถูกต้องคุณสามารถกด "New Scan"
+                เพื่อเริ่มวิเคราะห์ใหม่
+            </div>
+        </section>
+
+        <!-- Section 2: AI Health Summary -->
+        {% if analysis_result %}
+        <section
+            class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined">auto_awesome</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white">
+                        AI Health Summary <span class="text-slate-400 font-normal text-base ml-1" span>
+                    </h3>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="space-y-6">
+                    {% if analysis_result is mapping %}
+                    {% for test_name, text in analysis_result.items() %}
+                    <div
+                        class="p-5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h4 class="font-bold text-slate-900 dark:text-white mb-3 text-lg flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-sm">biotech</span>
+                            {{ test_name }}
+                        </h4>
+                        <div class="text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                            {{ text }}
+                        </div>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <p class="text-sm text-gray-500 mt-4">** หมายเหตุ: ระบบ AI สแกนอาจอ่านค่าเพี้ยนได้ในบางกรณี
-            หากข้อมูลไม่ถูกต้องคุณสามารถกด "+ สแกนไฟล์ใหม่" หรือ "กลับหน้าหลัก" เพื่อเริ่มวิเคราะห์ใหม่</p>
-    </div>
+                    {% else %}
+                    <div
+                        class="p-5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div class="text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                            {{ analysis_result }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
 
-    {% if analysis_result %}
-    <div class="bg-blue-50 p-8 rounded-xl border border-blue-200 shadow-md mb-8 border-l-4">
-        <h3 class="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
-            👨‍⚕️ สรุปภาพรวมสุขภาพจาก AI:
-        </h3>
+        <!-- Footer Actions -->
         <div
-            class="text-gray-800 whitespace-pre-line leading-relaxed text-lg bg-white p-6 rounded-lg border border-blue-100">
-            {{ analysis_result }}
+            class="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 border-t border-slate-200 dark:border-slate-800 pt-8">
+            <button
+                class="w-full sm:w-auto px-8 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                onclick="window.print()">
+                <span class="material-symbols-outlined">download</span>
+                Download PDF Report
+            </button>
+            <a href="/dashboard"
+                class="w-full sm:w-auto px-8 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined">task_alt</span>
+                Done
+            </a>
         </div>
-    </div>
-    {% endif %}
+    </main>
+    <footer class="py-10 text-center text-slate-400 text-sm">
+        <p>© 2026 Smart Medical AI - Healthcare Intelligence Simplified</p>
+    </footer>
+</body>
 
-</div>
-{% endblock %}
+</html>
